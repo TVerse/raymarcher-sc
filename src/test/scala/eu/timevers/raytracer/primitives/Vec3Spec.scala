@@ -2,9 +2,8 @@ package eu.timevers.raytracer.primitives
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import eu.timevers.raytracer.primitives.syntax.*
 
-class Vec3Spec extends AnyFlatSpec with Matchers {
+class Vec3Spec extends AnyFlatSpec with Matchers:
 
   behavior of "Vec3"
 
@@ -13,5 +12,3 @@ class Vec3Spec extends AnyFlatSpec with Matchers {
     val expected = Vec3(-1, -1, -1)
     -v should be(expected)
   }
-
-}

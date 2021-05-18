@@ -5,8 +5,7 @@ import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 
 import java.nio.file.Path
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.{Await, duration}
 
 val ImageFilePath = Path.of("image.ppm").nn
 
@@ -32,8 +31,8 @@ val C = Components[Task]
       vertical = Vec3(0, viewportHeight, 0)
     )
   )
-  val task = for {
+  val task = for
     renderResult <- C.raytracer.render(config)
-    written <- C.fileWriter.write(ImageFilePath)(renderResult)
-  } yield ()
+    _ <- C.fileWriter.write(ImageFilePath)(renderResult)
+  yield ()
   Await.result(task.runToFuture, 3.seconds)
