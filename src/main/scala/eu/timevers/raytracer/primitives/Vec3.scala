@@ -19,9 +19,15 @@ object Vec3:
 
     def dot(other: Vec3): Double = v.x * other.x + v.y * other.y + v.z * other.z
 
-    def norm: Double = v.dot(v)
+    def cross(other: Vec3): Vec3 = Vec3(
+      x = v.y * other.z - v.z * other.y,
+      y = v.z * other.x - v.x * other.z,
+      z = v.x * other.y - v.y * other.z
+    )
 
-    def length: Double = math.sqrt(norm)
+    def lengthSquared: Double = v.dot(v)
+
+    def length: Double = math.sqrt(lengthSquared)
 
     def unit: UnitVec3 = UnitVec3(v)
 

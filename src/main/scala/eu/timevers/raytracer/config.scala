@@ -2,17 +2,17 @@ package eu.timevers.raytracer
 
 import eu.timevers.raytracer.primitives.{Point3, Vec3}
 
-case class Config(imageSettings: ImageSettings, cameraSettings: CameraSettings)
+case class Config(
+    imageSettings: ImageSettings,
+    camera: Camera,
+    renderSettings: RenderSettings
+)
 
 case class ImageSettings(width: Int, height: Int)
 
-case class CameraSettings(
-    viewportHeight: Double,
-    viewportWidth: Double,
-    focalLength: Double,
-    origin: Point3,
-    horizontal: Vec3,
-    vertical: Vec3
+case class RenderSettings(
+    maxMarchingSteps: Int
 ):
-  val lowerLeftCorner: Point3 =
-    origin - horizontal / 2 - vertical / 2 - Vec3(0, 0, focalLength)
+  val epsilon: Double  = 1e-5
+  val minDepth: Double = 0
+  val maxDepth: Double = 100

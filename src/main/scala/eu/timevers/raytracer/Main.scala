@@ -13,27 +13,25 @@ val ImageFilePath = Path.of("image.ppm").nn
 val C = Components[Task]
 
 @main def main(): Unit =
-  val aspectRatio    = 16.0 / 9.0
-  val imageWidth     = 400
-  val imageHeight    = (imageWidth / aspectRatio).toInt
-  val viewportHeight = 2.0
-  val viewportWidth  = viewportHeight * aspectRatio
-  val config         = Config(
+  val aspectRatio = 16.0 / 9.0
+  val imageWidth  = 1200
+  val imageHeight = (imageWidth / aspectRatio).toInt
+  val config      = Config(
     imageSettings = ImageSettings(
       width = imageWidth,
       height = imageHeight
     ),
-    cameraSettings = CameraSettings(
-      viewportHeight = viewportHeight,
-      viewportWidth = viewportWidth,
-      focalLength = 1.0,
-      origin = Point3.Origin,
-      horizontal = Vec3(viewportWidth, 0, 0),
-      vertical = Vec3(0, viewportHeight, 0)
-    )
+    camera = Camera(
+      lookAt = Point3.Origin,
+      lookFrom = Point3(0, 0, 5),
+      up = Vec3(0, 1, 0),
+      vfov = 45,
+      aspectRatio = aspectRatio
+    ),
+    renderSettings = RenderSettings(maxMarchingSteps = 100)
   )
-  val task           = for
-    renderResult <- C.raytracer.render(config)
+  val task        = for
+    renderResult <- C.raymarcher.render(config)
     _            <- C.fileWriter.write(ImageFilePath)(renderResult)
   yield ()
   Await.result(task.runToFuture, 3.seconds)
