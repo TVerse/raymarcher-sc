@@ -5,19 +5,19 @@ import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 
 import java.nio.file.Path
-import scala.concurrent.{Await, duration}
+import scala.concurrent.{duration, Await}
 
 val ImageFilePath = Path.of("image.ppm").nn
 
 val C = Components[Task]
 
 @main def main(): Unit =
-  val aspectRatio = 16.0 / 9.0
-  val imageWidth = 400
-  val imageHeight = (imageWidth / aspectRatio).toInt
+  val aspectRatio    = 16.0 / 9.0
+  val imageWidth     = 400
+  val imageHeight    = (imageWidth / aspectRatio).toInt
   val viewportHeight = 2.0
-  val viewportWidth = viewportHeight * aspectRatio
-  val config = Config(
+  val viewportWidth  = viewportHeight * aspectRatio
+  val config         = Config(
     imageSettings = ImageSettings(
       width = imageWidth,
       height = imageHeight
@@ -31,8 +31,8 @@ val C = Components[Task]
       vertical = Vec3(0, viewportHeight, 0)
     )
   )
-  val task = for
+  val task           = for
     renderResult <- C.raytracer.render(config)
-    _ <- C.fileWriter.write(ImageFilePath)(renderResult)
+    _            <- C.fileWriter.write(ImageFilePath)(renderResult)
   yield ()
   Await.result(task.runToFuture, 3.seconds)
