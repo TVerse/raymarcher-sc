@@ -16,6 +16,5 @@ lazy val root = project
     ),
 
     libraryDependencies += "io.monix" %% "monix" % "3.4.0",
-
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.9" % "test",
   )

@@ -5,7 +5,8 @@ import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 
 import java.nio.file.Path
-import scala.concurrent.{duration, Await}
+import scala.concurrent.Await
+import scala.concurrent.duration.*
 
 val ImageFilePath = Path.of("image.ppm").nn
 

@@ -17,9 +17,11 @@ object Vec3:
 
     inline def /(d: Double): Vec3 = v * (1 / d)
 
-    inline def norm: Double = v.x * v.x + v.y * v.y + v.z * v.z
+    def dot(other: Vec3): Double = v.x * other.x + v.y * other.y + v.z * other.z
 
-    inline def length: Double = math.sqrt(norm)
+    def norm: Double = v.dot(v)
+
+    def length: Double = math.sqrt(norm)
 
     def unit: UnitVec3 = UnitVec3(v)
 
