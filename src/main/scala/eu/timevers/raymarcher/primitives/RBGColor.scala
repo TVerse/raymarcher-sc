@@ -1,4 +1,4 @@
-package eu.timevers.raytracer.primitives
+package eu.timevers.raymarcher.primitives
 
 case class RGBColor(r: Int, g: Int, b: Int)
 

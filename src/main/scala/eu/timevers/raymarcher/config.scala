@@ -1,6 +1,6 @@
-package eu.timevers.raytracer
+package eu.timevers.raymarcher
 
-import eu.timevers.raytracer.primitives.{Point3, Vec3}
+import eu.timevers.raymarcher.primitives.{Point3, Vec3}
 
 case class Config(
     imageSettings: ImageSettings,

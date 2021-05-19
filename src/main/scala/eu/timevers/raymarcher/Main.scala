@@ -1,6 +1,6 @@
-package eu.timevers.raytracer
+package eu.timevers.raymarcher
 
-import eu.timevers.raytracer.primitives.{Point3, Vec3}
+import eu.timevers.raymarcher.primitives.{Point3, Vec3}
 import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 

@@ -1,6 +1,6 @@
-package eu.timevers.raytracer.scene
+package eu.timevers.raymarcher.scene
 
-import eu.timevers.raytracer.primitives.{Point3, UnitVec3, Vec3}
+import eu.timevers.raymarcher.primitives.{Point3, UnitVec3, Vec3}
 
 case class SDF(unSDF: Point3 => Double)
 

@@ -1,4 +1,4 @@
-package eu.timevers.raytracer
+package eu.timevers.raymarcher
 
 import cats.Id
 import cats.effect.Sync

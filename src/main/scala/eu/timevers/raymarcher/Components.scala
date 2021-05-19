@@ -1,4 +1,4 @@
-package eu.timevers.raytracer
+package eu.timevers.raymarcher
 
 import monix.eval.Task
 import cats.effect.Sync

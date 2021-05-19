@@ -1,4 +1,4 @@
-package eu.timevers.raytracer.primitives
+package eu.timevers.raymarcher.primitives
 
 case class Color(r: Double, g: Double, b: Double)
 

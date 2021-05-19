@@ -1,4 +1,4 @@
-package eu.timevers.raytracer.primitives
+package eu.timevers.raymarcher.primitives
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

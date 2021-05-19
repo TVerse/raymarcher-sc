@@ -1,4 +1,4 @@
-package eu.timevers.raytracer.primitives
+package eu.timevers.raymarcher.primitives
 
 case class Point3(x: Double, y: Double, z: Double) derives CanEqual
 

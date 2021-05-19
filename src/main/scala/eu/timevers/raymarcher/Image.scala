@@ -1,6 +1,6 @@
-package eu.timevers.raytracer
+package eu.timevers.raymarcher
 
-import eu.timevers.raytracer.primitives.RGBColor
+import eu.timevers.raymarcher.primitives.RGBColor
 
 case class Image(width: Int, height: Int, pixels: List[RGBColor])
 

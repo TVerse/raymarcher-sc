@@ -1,17 +1,17 @@
-package eu.timevers.raytracer
+package eu.timevers.raymarcher
 
 import cats.Applicative
 import cats.syntax.apply.catsSyntaxApply
 import cats.syntax.functor.toFunctorOps
 import cats.syntax.traverse.toTraverseOps
-import eu.timevers.raytracer.Logger
-import eu.timevers.raytracer.primitives.*
-import eu.timevers.raytracer.scene.SDF
+import eu.timevers.raymarcher.Logger
+import eu.timevers.raymarcher.primitives.*
+import eu.timevers.raymarcher.scene.SDF
 
 import scala.annotation.tailrec
 import scala.collection.immutable.LazyList
 
-class Raymarcher[F[_]](using S: Applicative[F], L: Logger[F]):
+class Raymarcher[F[_]](using S: Applicative[F]):
   def render(config: Config): F[Image] =
     val height        = config.imageSettings.height
     val width         = config.imageSettings.width

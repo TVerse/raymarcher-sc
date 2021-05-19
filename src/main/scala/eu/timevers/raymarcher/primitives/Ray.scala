@@ -1,4 +1,4 @@
-package eu.timevers.raytracer.primitives
+package eu.timevers.raymarcher.primitives
 
 case class Ray(origin: Point3, direction: Vec3) derives CanEqual
 
