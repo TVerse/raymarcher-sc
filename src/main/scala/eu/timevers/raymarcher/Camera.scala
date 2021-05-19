@@ -22,19 +22,17 @@ object Camera:
     val viewportHeight = 2 * h
     val viewportWidth  = aspectRatio * viewportHeight
 
-    val origin = lookFrom
-
     val w = (lookFrom.asVec - lookAt.asVec).unit.asVec
     val u = up.cross(w).unit.asVec
-    val v = w.cross(u)
+    val v = w.cross(u).unit.asVec
 
     val horizontal = viewportWidth * u
     val vertical   = viewportHeight * v
     Camera(
-      origin = origin,
+      origin = lookFrom,
       horizontal = horizontal,
       vertical = vertical,
-      lowerLeftCorner = origin - horizontal / 2 - vertical / 2 - w
+      lowerLeftCorner = lookFrom - horizontal / 2 - vertical / 2 - w
     )
 
   extension (c: Camera)

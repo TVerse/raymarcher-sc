@@ -6,13 +6,13 @@ import cats.syntax.functor.toFunctorOps
 import cats.syntax.traverse.toTraverseOps
 import eu.timevers.raymarcher.Logger
 import eu.timevers.raymarcher.primitives.*
-import eu.timevers.raymarcher.scene.SDF
+import eu.timevers.raymarcher.scene.{SDF, Scene}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.LazyList
 
 class Raymarcher[F[_]](using S: Applicative[F]):
-  def render(config: Config): F[Image] =
+  def render(config: Config, scene: Scene): F[Image] =
     val height        = config.imageSettings.height
     val width         = config.imageSettings.width
     val pixels        = for
@@ -26,7 +26,8 @@ class Raymarcher[F[_]](using S: Applicative[F]):
         width,
         height,
         config.camera,
-        config.renderSettings
+        config.renderSettings,
+        scene
       )
     }
     S.pure(Image(width, height, coloredPixels.map(RGBColor(_))))
@@ -37,25 +38,30 @@ class Raymarcher[F[_]](using S: Applicative[F]):
       imageWidth: Int,
       imageHeight: Int,
       camera: Camera,
-      renderSettings: RenderSettings
+      renderSettings: RenderSettings,
+      scene: Scene
   ): Color =
-    val u     = i.toDouble / (imageWidth - 1)
-    val v     = j.toDouble / (imageHeight - 1)
-    val r     = camera.getRay(u, v)
-    val scene = SDF.sphere
+    val u = i.toDouble / (imageWidth - 1)
+    val v = j.toDouble / (imageHeight - 1)
+    val r = camera.getRay(u, v)
 
-    val unit            = r.direction.unit
-    val t               = 0.5 * (unit.y + 1.0)
-    val backgroundColor = (1 - t) * Color(1, 1, 1) + t * Color(0.5, 0.7, 1)
+    val backgroundColor = scene.background(r)
+
+    val sdf = scene.sdf
 
     @tailrec
     def step(depth: Double, count: Int): Color =
       val p    = r.origin + depth * r.direction
-      val dist = scene.unSDF(p)
+      val dist = sdf(p)
+      val newDepth = dist + depth
       if math.abs(dist) < renderSettings.epsilon then
-        val normal = scene.estimateNormal(p)
+        val normal = sdf.estimateNormal(p)
         0.5 * (Color(1, 1, 1) + Color(normal.x, normal.y, normal.z))
-      else if count > renderSettings.maxMarchingSteps then backgroundColor
-      else step(depth + dist, count + 1)
+//        val frac   = count.toDouble / renderSettings.maxMarchingSteps
+//        Color(frac, frac, frac)
+      else
+        if count > renderSettings.maxMarchingSteps || newDepth > renderSettings.tMax then
+          backgroundColor
+        else step(newDepth, count + 1)
 
-    step(renderSettings.minDepth, 0)
+    step(renderSettings.tMin, 0)

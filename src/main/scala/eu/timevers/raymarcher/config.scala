@@ -11,8 +11,8 @@ case class Config(
 case class ImageSettings(width: Int, height: Int)
 
 case class RenderSettings(
-    maxMarchingSteps: Int
-):
-  val epsilon: Double  = 1e-5
-  val minDepth: Double = 0
-  val maxDepth: Double = 100
+    maxMarchingSteps: Int,
+    tMin: Double,
+    tMax: Double,
+    epsilon: Double = 1e-5
+)
