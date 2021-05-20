@@ -1,29 +1,42 @@
 package eu.timevers.raymarcher.scene
 
-import eu.timevers.raymarcher.primitives.{Color, Point3, UnitVec3, Vec3}
 import cats.data.Kleisli
-import cats.implicits.*
-import cats.Id
+import cats.{implicits, Id}
+import eu.timevers.raymarcher.primitives.{Color, Point3, UnitVec3, Vec3}
 
 type Distance = Double
 
-// TODO split this function so the material/color isn't also constantly computed.
-opaque type SceneMap = Point3 => (Distance, Material)
+private type SDF = Point3 => Distance
+
+private type MF = Point3 => Material
+
+enum SceneMap:
+  case Primitive(sdf: SDF, mf: MF)
+  case WithMaterial(a: SceneMap, m: MF)
+  case Union(a: SceneMap, b: SceneMap)
+  case Intersect(a: SceneMap, b: SceneMap)
+  case Subtract(a: SceneMap, b: SceneMap)
+  case Translate(a: SceneMap, v: Vec3)
+  case LinearBlend(a: SceneMap, b: SceneMap, k: Double)
+  case ExponentialBlend(a: SceneMap, b: SceneMap, k: Double)
+  case ScaleUniform(a: SceneMap, k: Double)
 
 object SceneMap:
-  val Epsilon = 0.00001
+  val Epsilon                                     = 0.00001
+  val defaultMaterialFunction: Point3 => Material = _ => Material.Default
 
-  val const: SceneMap = _ => (1, Material.Default)
+  val const: SceneMap = Primitive(_ => 1, defaultMaterialFunction)
 
   object halfSpace:
-    val negX: SceneMap = p => (p.x, Material.Default)
-    val posX: SceneMap = p => (-p.x, Material.Default)
-    val negY: SceneMap = p => (p.y, Material.Default)
-    val posY: SceneMap = p => (-p.y, Material.Default)
-    val negZ: SceneMap = p => (p.z, Material.Default)
-    val posZ: SceneMap = p => (-p.z, Material.Default)
+    val negX: SceneMap = Primitive(p => p.x, defaultMaterialFunction)
+    val posX: SceneMap = Primitive(p => -p.x, defaultMaterialFunction)
+    val negY: SceneMap = Primitive(p => p.y, defaultMaterialFunction)
+    val posY: SceneMap = Primitive(p => -p.y, defaultMaterialFunction)
+    val negZ: SceneMap = Primitive(p => p.z, defaultMaterialFunction)
+    val posZ: SceneMap = Primitive(p => -p.z, defaultMaterialFunction)
 
-  val unitSphere: SceneMap = p => (p.asVec.length - 1, Material.Default)
+  val unitSphere: SceneMap =
+    Primitive(p => p.asVec.length - 1, defaultMaterialFunction)
 
   // TODO inefficient
   val unitCube: SceneMap =
@@ -36,50 +49,73 @@ object SceneMap:
       .intersect(halfSpace.posZ.translate(Vec3(0, 0, -0.5)))
 
   extension (sceneMap: SceneMap)
-    def apply(p: Point3): (Distance, Material) = sceneMap(p)
+    def distance(p: Point3): Distance                        =
+      sceneMap match
+        case Primitive(sdf, _)         => sdf(p)
+        case WithMaterial(a, _)        => a.distance(p)
+        case Union(a, b)               =>
+          val da = a.distance(p)
+          val db = b.distance(p)
+          if da <= db then da else db
+        case Intersect(a, b)           =>
+          val da = a.distance(p)
+          val db = b.distance(p)
+          if da > db then da else db
+        case Subtract(a, b)            =>
+          val da = a.distance(p)
+          val db = b.distance(p)
+          if da > -db then da else db
+        case Translate(a, v)           => a.distance(p - v)
+        case LinearBlend(a, b, k)      =>
+          (1 - k) * a.distance(p) + k * b.distance(p)
+        case ExponentialBlend(a, b, k) =>
+          val res = math.exp(-k * a.distance(p)) + math.exp(-k * b.distance(p))
+          -math.log(math.max(Epsilon, res)) / k
+        case ScaleUniform(a, k)        => a.distance((p.asVec / k).asPoint) * k
 
-    def withMaterial(m: Material): SceneMap = p => (sceneMap(p)(0), m)
+    def material(p: Point3): Material                        =
+      sceneMap match
+        case Primitive(_, mf)     => mf(p)
+        case WithMaterial(_, mf)  => mf(p)
+        case Union(a, b)          =>
+          val da = a.distance(p)
+          val db = b.distance(p)
+          if da <= db then a.material(p) else b.material(p)
+        case Intersect(a, b)      =>
+          val da = a.distance(p)
+          val db = b.distance(p)
+          if da > db then a.material(p) else b.material(p)
+        case Subtract(a, b)       =>
+          val da = a.distance(p)
+          val db = b.distance(p)
+          if da > -db then a.material(p) else b.material(p)
+        case Translate(a, v)      => a.material(p - v)
+        case LinearBlend(a, b, k) => a.material(p).linearBlend(b.material(p), k)
+        case ExponentialBlend(a, b, k) =>
+          a.material(p).exponentialBlend(b.material(p), k)
+        case ScaleUniform(a, k)        => a.material((p.asVec / k).asPoint)
 
-    def union(other: SceneMap): SceneMap = p =>
-      val first  = sceneMap(p)
-      val second = other(p)
-      if first(0) <= second(0) then first
-      else second
+    inline def withMaterial(m: Point3 => Material): SceneMap =
+      WithMaterial(sceneMap, m)
 
-    def intersect(other: SceneMap): SceneMap = p =>
-      val first  = sceneMap(p)
-      val second = other(p)
-      if first(0) >= second(0) then first
-      else second
+    inline def union(other: SceneMap): SceneMap = Union(sceneMap, other)
 
-    def subtract(other: SceneMap): SceneMap = p =>
-      val first  = sceneMap(p)
-      val second = other(p)
-      if first(0) >= -second(0) then first
-      else second
+    inline def intersect(other: SceneMap): SceneMap = Intersect(sceneMap, other)
 
-    def translate(v: Vec3): SceneMap = p => sceneMap(p - v)
+    inline def subtract(other: SceneMap): SceneMap = Subtract(sceneMap, other)
 
-    def blend(other: SceneMap, a: Double): SceneMap = p =>
-      val first  = sceneMap(p)
-      val second = other(p)
-      ((1 - a) * first(0) + a * second(0), first(1).linearBlend(second(1), a))
+    inline def translate(v: Vec3): SceneMap = Translate(sceneMap, v)
 
-    def exponentialBlend(other: SceneMap, k: Double): SceneMap = p =>
-      val (firstDist, firstMat)   = sceneMap(p)
-      val (secondDist, secondMat) = other(p)
-      val res = math.exp(-k * firstDist) + math.exp(-k * secondDist)
-      (
-        -math.log(math.max(Epsilon, res)) / k,
-        firstMat.exponentialBlend(secondMat, k)
-      )
+    inline def linearBlend(other: SceneMap, k: Double): SceneMap =
+      LinearBlend(sceneMap, other, k)
 
-    def scaleUniform(f: Double): SceneMap = p =>
-      val res = sceneMap((p.asVec / f).asPoint)
-      (res(0) * f, res(1))
+    inline def exponentialBlend(other: SceneMap, k: Double): SceneMap =
+      ExponentialBlend(sceneMap, other, k)
+
+    inline def scaleUniform(k: Double): SceneMap = ScaleUniform(sceneMap, k)
 
     def estimateNormal(p: Point3): UnitVec3 =
-      val sdf: Point3 => Distance = sceneMap.map(_(0))
+      val sdf: Point3 => Distance = sceneMap.distance
       val v                       = Vec3(
         x = sdf(Point3(p.x + Epsilon, p.y, p.z)) - sdf(
           Point3(p.x - Epsilon, p.y, p.z)

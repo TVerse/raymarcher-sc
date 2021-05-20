@@ -2,20 +2,25 @@ package eu.timevers.raymarcher.scene
 
 import eu.timevers.raymarcher.primitives.{Color}
 
+/*
+Material depends on point in 3D space
+Only applied when SDF(p) = 0 (handle volumetrics later?)
+So base form is Point3 => Material (refraction/reflection requires handling in marcher impl)
+But blending could also use a measure of overlap (so SDF(p)?)
+ */
+
 enum Material:
   case Constant(c: Color)
-  case Normal
-  case Iterations
 
 object Material:
   val Default: Material = Constant(Color(1, 0, 1))
 
   extension (m: Material)
-    def linearBlend(other: Material, a: Double): Material = (m, other) match
-      case (Constant(first), Constant(other)) => Constant(first)
-      case (first, second)                    => first
+    def linearBlend(other: Material, k: Double): Material = (m, other) match
+      case (Constant(a), Constant(b)) => Constant((1 - k) * a + k * b)
+      case (first, second)            => second
 
     def exponentialBlend(other: Material, k: Double): Material =
       (m, other) match
-        case (Constant(first), Constant(other)) => Constant(first)
-        case (first, second)                    => first
+        case (Constant(a), Constant(b)) => Constant(a)
+        case (first, second)            => first

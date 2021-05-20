@@ -8,6 +8,7 @@ import monix.execution.Scheduler.Implicits.global
 import java.nio.file.Path
 import scala.concurrent.Await
 import scala.concurrent.duration.given
+import util.chaining.scalaUtilChainingOps
 
 val ImageFilePath = Path.of("image.ppm").nn
 
@@ -15,7 +16,7 @@ val C = Components[Task]
 
 @main def main(): Unit =
   val aspectRatio = 16.0 / 9.0
-  val imageWidth  = 400
+  val imageWidth  = 800
   val imageHeight = (imageWidth / aspectRatio).toInt
   val config      = Config(
     imageSettings = ImageSettings(
@@ -33,20 +34,33 @@ val C = Components[Task]
       maxMarchingSteps = 1000,
       tMin = 0,
       tMax = 100
+//      materialOverride = Some(MaterialOverride.Iterations),
     )
   )
-  val sceneMap    = SceneMap.unitSphere
-    .withMaterial(Material.Normal)
+
+  def clampedSin(d: Double): Double = math.sin(d)
+
+  val clampedSinMaterial: Point3 => Material = p =>
+    Material.Constant(
+      Color(clampedSin(p.x * 2), clampedSin(p.y * 3), clampedSin(p.z * 4))
+    )
+  val sceneMap                               = SceneMap.unitSphere
+    .withMaterial(clampedSinMaterial)
     .translate(Vec3(-0.5, 0.25, 0))
     .scaleUniform(1.125)
-    .exponentialBlend(SceneMap.unitSphere.translate(Vec3(0.5, 0, 0)), k = 32)
+    .linearBlend(
+      SceneMap.unitSphere
+        .withMaterial(clampedSinMaterial)
+        .translate(Vec3(0.5, 0, 0)),
+      k = 0.5
+    )
+//    .exponentialBlend(SceneMap.unitSphere.withMaterial(clampedSinMaterial).scaleUniform(1.5).translate(Vec3(0, 1, -1)), k=32)
     .union(
       SceneMap.unitCube
         .translate(Vec3(0, -1.5, 0))
-        .withMaterial(Material.Iterations)
     )
 //    .subtract(SceneMap.halfSpace.posX.translate(Vec3(0, 0, 0)))
-  val scene       = Scene(
+  val scene                                  = Scene(
     sceneMap = sceneMap,
     background = Background.gradient(
       r => 0.5 * (r.direction.unit.y + 1.0),

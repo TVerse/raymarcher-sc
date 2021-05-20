@@ -45,26 +45,33 @@ class Raymarcher[F[_]](using S: Applicative[F]):
     val v = j.toDouble / (imageHeight - 1)
     val r = camera.getRay(u, v)
 
-    val backgroundColor = scene.background(r)
-
     val sceneMap = scene.sceneMap
 
     @tailrec
     def step(depth: Double, count: Int): Color =
-      val p           = r.origin + depth * r.direction
-      val (dist, mat) = sceneMap(p)
-      val newDepth    = dist + depth
+      val p        = r.origin + depth * r.direction
+      val dist     = sceneMap.distance(p)
+      val newDepth = dist + depth
       if math.abs(dist) < renderSettings.epsilon then
-        mat match
-          case Material.Constant(c) => c
-          case Material.Normal      =>
+        renderSettings.materialOverride match
+          case Some(MaterialOverride.Normal)     =>
             val normal = sceneMap.estimateNormal(p)
             0.5 * (Color(1, 1, 1) + Color(normal.x, normal.y, normal.z))
-          case Material.Iterations  =>
+          case Some(MaterialOverride.Iterations) =>
             val frac = count.toDouble / renderSettings.maxMarchingSteps
             Color(frac, frac, frac)
+          case None                              =>
+            sceneMap.material(p) match
+              case Material.Constant(c) => c
       else if count > renderSettings.maxMarchingSteps || newDepth > renderSettings.tMax then
-        backgroundColor
+        if renderSettings.materialOverride.contains(
+            MaterialOverride.Iterations
+          )
+        then
+          val frac = count.toDouble / renderSettings.maxMarchingSteps
+          if frac > 0.99 then Color(1, 0, 1)
+          else Color(frac, frac, frac)
+        else scene.background(r)
       else step(newDepth, count + 1)
 
     step(renderSettings.tMin, 0)
