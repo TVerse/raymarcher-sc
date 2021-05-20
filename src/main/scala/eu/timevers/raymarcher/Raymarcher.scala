@@ -6,7 +6,7 @@ import cats.syntax.functor.toFunctorOps
 import cats.syntax.traverse.toTraverseOps
 import eu.timevers.raymarcher.Logger
 import eu.timevers.raymarcher.primitives.*
-import eu.timevers.raymarcher.scene.{SDF, Scene}
+import eu.timevers.raymarcher.scene.{Material, Scene, SceneMap}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.LazyList
@@ -47,21 +47,24 @@ class Raymarcher[F[_]](using S: Applicative[F]):
 
     val backgroundColor = scene.background(r)
 
-    val sdf = scene.sdf
+    val sceneMap = scene.sceneMap
 
     @tailrec
     def step(depth: Double, count: Int): Color =
-      val p    = r.origin + depth * r.direction
-      val dist = sdf(p)
-      val newDepth = dist + depth
+      val p           = r.origin + depth * r.direction
+      val (dist, mat) = sceneMap(p)
+      val newDepth    = dist + depth
       if math.abs(dist) < renderSettings.epsilon then
-        val normal = sdf.estimateNormal(p)
-        0.5 * (Color(1, 1, 1) + Color(normal.x, normal.y, normal.z))
-//        val frac   = count.toDouble / renderSettings.maxMarchingSteps
-//        Color(frac, frac, frac)
-      else
-        if count > renderSettings.maxMarchingSteps || newDepth > renderSettings.tMax then
-          backgroundColor
-        else step(newDepth, count + 1)
+        mat match
+          case Material.Constant(c) => c
+          case Material.Normal      =>
+            val normal = sceneMap.estimateNormal(p)
+            0.5 * (Color(1, 1, 1) + Color(normal.x, normal.y, normal.z))
+          case Material.Iterations  =>
+            val frac = count.toDouble / renderSettings.maxMarchingSteps
+            Color(frac, frac, frac)
+      else if count > renderSettings.maxMarchingSteps || newDepth > renderSettings.tMax then
+        backgroundColor
+      else step(newDepth, count + 1)
 
     step(renderSettings.tMin, 0)

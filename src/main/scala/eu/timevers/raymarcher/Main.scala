@@ -1,7 +1,7 @@
 package eu.timevers.raymarcher
 
-import eu.timevers.raymarcher.primitives.{Point3, Vec3, Color}
-import eu.timevers.raymarcher.scene.{Background, SDF, Scene}
+import eu.timevers.raymarcher.primitives.{Color, Point3, Vec3}
+import eu.timevers.raymarcher.scene.{Background, Material, Scene, SceneMap}
 import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
 
@@ -15,7 +15,7 @@ val C = Components[Task]
 
 @main def main(): Unit =
   val aspectRatio = 16.0 / 9.0
-  val imageWidth  = 800
+  val imageWidth  = 400
   val imageHeight = (imageWidth / aspectRatio).toInt
   val config      = Config(
     imageSettings = ImageSettings(
@@ -26,7 +26,7 @@ val C = Components[Task]
       lookAt = Point3.Origin,
       lookFrom = Point3(3, 4, 5),
       up = Vec3(0, 1, 0),
-      vfov = 20,
+      vfov = 30,
       aspectRatio = aspectRatio
     ),
     renderSettings = RenderSettings(
@@ -35,13 +35,19 @@ val C = Components[Task]
       tMax = 100
     )
   )
+  val sceneMap    = SceneMap.unitSphere
+    .withMaterial(Material.Normal)
+    .translate(Vec3(-0.5, 0.25, 0))
+    .scaleUniform(1.125)
+    .exponentialBlend(SceneMap.unitSphere.translate(Vec3(0.5, 0, 0)), k = 32)
+    .union(
+      SceneMap.unitCube
+        .translate(Vec3(0, -1.5, 0))
+        .withMaterial(Material.Iterations)
+    )
+//    .subtract(SceneMap.halfSpace.posX.translate(Vec3(0, 0, 0)))
   val scene       = Scene(
-    sdf = SDF.unitSphere
-      .translate(Vec3(-0.5, 0.25, 0))
-      .scaleUniform(1.125)
-      .smoothUnion(SDF.unitSphere.translate(Vec3(0.5, 0, 0)), k = 32)
-      .union(SDF.unitCube.translate(Vec3(0, -1.5, 0)))
-      .subtract(SDF.halfSpace.posX.translate(Vec3(0, 0, 0))),
+    sceneMap = sceneMap,
     background = Background.gradient(
       r => 0.5 * (r.direction.unit.y + 1.0),
       Color(1, 1, 1),
