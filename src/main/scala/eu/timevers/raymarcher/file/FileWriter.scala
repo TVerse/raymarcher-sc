@@ -1,7 +1,8 @@
-package eu.timevers.raymarcher
+package eu.timevers.raymarcher.file
 
 import cats.effect.Sync
 import cats.syntax.all.catsSyntaxApply
+import eu.timevers.raymarcher.image.Image
 import monix.eval.Task
 
 import java.io.BufferedWriter

@@ -1,6 +1,7 @@
 package eu.timevers.raymarcher
 
 import eu.timevers.raymarcher.primitives.{Point3, Vec3}
+import eu.timevers.raymarcher.scene.Camera
 
 case class Config(
     imageSettings: ImageSettings,

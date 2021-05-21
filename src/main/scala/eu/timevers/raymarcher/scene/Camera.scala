@@ -1,5 +1,7 @@
-package eu.timevers.raymarcher
+package eu.timevers.raymarcher.scene
 
+import cats.Applicative
+import cats.implicits.catsSyntaxApplicativeId
 import eu.timevers.raymarcher.primitives.{Point3, Ray, Vec3}
 
 case class Camera(
@@ -36,7 +38,7 @@ object Camera:
     )
 
   extension (c: Camera)
-    def getRay(s: Double, t: Double): Ray = Ray(
+    def getRay[F[_]: Applicative](s: Double, t: Double): F[Ray] = Ray(
       c.origin,
       c.lowerLeftCorner.asVec + s * c.horizontal + t * c.vertical - c.origin.asVec
-    )
+    ).pure

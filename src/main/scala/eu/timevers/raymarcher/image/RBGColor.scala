@@ -1,4 +1,6 @@
-package eu.timevers.raymarcher.primitives
+package eu.timevers.raymarcher.image
+
+import eu.timevers.raymarcher.primitives.{Color}
 
 case class RGBColor(r: Int, g: Int, b: Int)
 

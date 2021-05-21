@@ -1,9 +1,16 @@
 package eu.timevers.raymarcher
 
 import eu.timevers.raymarcher.primitives.{Color, Point3, Vec3}
-import eu.timevers.raymarcher.scene.{Background, Material, Scene, SceneMap}
+import eu.timevers.raymarcher.scene.{
+  Background,
+  Camera,
+  Material,
+  Scene,
+  SceneMap
+}
 import monix.eval.Task
 import monix.execution.Scheduler.Implicits.global
+import cats.Monad.ops.toAllMonadOps
 
 import java.nio.file.Path
 import scala.concurrent.Await
@@ -16,7 +23,7 @@ val C = Components[Task]
 
 @main def main(): Unit =
   val aspectRatio = 16.0 / 9.0
-  val imageWidth  = 800
+  val imageWidth  = 600
   val imageHeight = (imageWidth / aspectRatio).toInt
   val config      = Config(
     imageSettings = ImageSettings(
@@ -33,8 +40,8 @@ val C = Components[Task]
     renderSettings = RenderSettings(
       maxMarchingSteps = 1000,
       tMin = 0,
-      tMax = 100
-//      materialOverride = Some(MaterialOverride.Iterations),
+      tMax = 100,
+      materialOverride = Some(MaterialOverride.Normal)
     )
   )
 
@@ -48,11 +55,11 @@ val C = Components[Task]
     .withMaterial(clampedSinMaterial)
     .translate(Vec3(-0.5, 0.25, 0))
     .scaleUniform(1.125)
-    .linearBlend(
+    .exponentialBlend(
       SceneMap.unitSphere
         .withMaterial(clampedSinMaterial)
         .translate(Vec3(0.5, 0, 0)),
-      k = 0.5
+      k = 32
     )
 //    .exponentialBlend(SceneMap.unitSphere.withMaterial(clampedSinMaterial).scaleUniform(1.5).translate(Vec3(0, 1, -1)), k=32)
     .union(
@@ -69,8 +76,11 @@ val C = Components[Task]
     )
   )
 
-  val task = for
+  val task  = for
     renderResult <- C.raymarcher.render(config, scene)
     _            <- C.fileWriter.write(ImageFilePath)(renderResult)
   yield ()
-  Await.result(task.runToFuture, 10.seconds)
+  val timed = task.timed.flatTap { case (time, _) =>
+    Task(println(s"Took: ${time.toSeconds}"))
+  }
+  Await.result(timed.runToFuture, 5.minutes)
