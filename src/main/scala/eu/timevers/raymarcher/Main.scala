@@ -8,8 +8,8 @@ import eu.timevers.raymarcher.scene.{
   Scene,
   SceneMap
 }
-import monix.eval.Task
-import monix.execution.Scheduler.Implicits.global
+import cats.effect.IO
+import cats.effect.unsafe.implicits.global // TODO
 import cats.Monad.ops.toAllMonadOps
 
 import java.nio.file.Path
@@ -19,11 +19,11 @@ import util.chaining.scalaUtilChainingOps
 
 val ImageFilePath = Path.of("image.ppm").nn
 
-val C = Components[Task]
-
 @main def main(): Unit =
+  type F[A] = IO[A]
+  val C           = Components[F]
   val aspectRatio = 16.0 / 9.0
-  val imageWidth  = 600
+  val imageWidth  = 1200
   val imageHeight = (imageWidth / aspectRatio).toInt
   val config      = Config(
     imageSettings = ImageSettings(
@@ -78,9 +78,9 @@ val C = Components[Task]
 
   val task  = for
     renderResult <- C.raymarcher.render(config, scene)
-    _            <- C.fileWriter.write(ImageFilePath)(renderResult)
+    _ <- C.fileWriter.write(ImageFilePath)(renderResult).compile.drain
   yield ()
   val timed = task.timed.flatTap { case (time, _) =>
-    Task(println(s"Took: ${time.toSeconds}"))
+    Logger[F].info(s"Done! Took: ${time.toSeconds} seconds")
   }
-  Await.result(timed.runToFuture, 5.minutes)
+  timed.unsafeRunSync()

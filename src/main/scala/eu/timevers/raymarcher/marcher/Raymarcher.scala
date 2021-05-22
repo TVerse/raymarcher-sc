@@ -1,9 +1,8 @@
 package eu.timevers.raymarcher.marcher
 
 import cats.Applicative
-import cats.syntax.apply.catsSyntaxApply
-import cats.syntax.functor.toFunctorOps
-import cats.syntax.traverse.toTraverseOps
+import cats.effect.Concurrent
+import cats.implicits.*
 import eu.timevers.raymarcher.scene.{Camera, Material, Scene, SceneMap}
 import eu.timevers.raymarcher.image.RGBColor
 import eu.timevers.raymarcher.image.Image
@@ -15,21 +14,29 @@ import eu.timevers.raymarcher.{
   RenderSettings
 }
 import eu.timevers.raymarcher.image.Image
+import eu.timevers.raymarcher.Logger
 
 import scala.annotation.tailrec
 import scala.collection.immutable.LazyList
 
-class Raymarcher[F[_]: Applicative]:
-  def render(config: Config, scene: Scene): F[Image] =
+class Raymarcher[F[_]: Applicative: Concurrent: Logger](parallelism: Int):
+  def render(config: Config, scene: Scene): F[Image[F]] =
     val height = config.imageSettings.height
     val width  = config.imageSettings.width
-    val pixels = for
-      j <- (height - 1) to 0 by -1
-      i <- 0 until width
-    yield (i, j)
-    pixels.toList
-      .traverse { case (i, j) =>
-        generatePixel(
+
+    val heightIndices =
+      fs2.Stream.unfoldLoop(height - 1)(j => (j, Option(j - 1).filter(_ > 0)))
+    val widthIndices  =
+      fs2.Stream.unfoldLoop(0)(i => (i, Option(i + 1).filter(_ < width)))
+
+    val pixels = heightIndices
+      .product(widthIndices)
+      .parEvalMap(parallelism) { case (j, i) =>
+        val log =
+          if i == 0 && j % 100 == 0 then
+            Logger[F].info(s"Remaining scanlines: $j")
+          else Concurrent[F].unit
+        log *> generatePixel(
           i,
           j,
           width,
@@ -39,7 +46,8 @@ class Raymarcher[F[_]: Applicative]:
           scene
         )
       }
-      .map(cps => Image(width, height, cps.map(RGBColor(_))))
+
+    Image[F](width, height, pixels.map(RGBColor(_))).pure
 
   private def generatePixel(
       i: Int,

@@ -2,14 +2,17 @@ package eu.timevers.raymarcher
 
 import cats.Id
 import cats.effect.Sync
-import monix.eval.Task
+import cats.effect.std.Console
 
 trait Logger[F[_]]:
   def info(s: String): F[Unit]
 
-given [F[_]: Sync]: Logger[F] with
-  def info(s: String): F[Unit] =
-    Sync[F].delay(System.err.nn.println(s"[INFO] $s"))
+object Logger:
+  def apply[F[_]](using L: Logger[F]): L.type = L
 
-given Logger[Id] with
-  def info(s: String): Id[Unit] = ()
+  given [F[_]: Console]: Logger[F] with
+    def info(s: String): F[Unit] =
+      Console[F].println(s"[INFO] $s")
+
+  given Logger[Id] with
+    def info(s: String): Id[Unit] = ()
