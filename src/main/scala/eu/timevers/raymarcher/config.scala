@@ -19,6 +19,7 @@ case class RenderSettings(
     maxMarchingSteps: Int,
     tMin: Double,
     tMax: Double,
+    samplesPerPixel: Int,
     epsilon: Double = 1e-5,
     materialOverride: Option[MaterialOverride] = None
 )

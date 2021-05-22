@@ -13,7 +13,16 @@ object RGBColor:
     )
 
   def apply(c: Color): RGBColor =
-    RGBColor((c.r * 256).toInt, (c.g * 256).toInt, (c.b * 256).toInt)
+    RGBColor(
+      (clampToRange0To1(c.r) * 256).toInt,
+      (clampToRange0To1(c.g) * 256).toInt,
+      (clampToRange0To1(c.b) * 256).toInt
+    )
+
+  private def clampToRange0To1(d: Double): Double =
+    if d < 0 then 0
+    else if d > 1 then 1
+    else d
 
   private def clampToRange0To255(i: Int): Int =
     if i < 0 then 0

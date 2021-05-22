@@ -9,12 +9,13 @@ import eu.timevers.raymarcher.scene.{
   SceneMap
 }
 import cats.effect.IO
-import cats.effect.unsafe.implicits.global // TODO
+import cats.effect.unsafe.implicits.global
 import cats.Monad.ops.toAllMonadOps
 
 import java.nio.file.Path
 import scala.concurrent.Await
-import scala.concurrent.duration.given
+import scala.concurrent.duration
+import scala.util.Random
 import util.chaining.scalaUtilChainingOps
 
 val ImageFilePath = Path.of("image.ppm").nn
@@ -23,7 +24,7 @@ val ImageFilePath = Path.of("image.ppm").nn
   type F[A] = IO[A]
   val C           = Components[F]
   val aspectRatio = 16.0 / 9.0
-  val imageWidth  = 1200
+  val imageWidth  = 400
   val imageHeight = (imageWidth / aspectRatio).toInt
   val config      = Config(
     imageSettings = ImageSettings(
@@ -41,7 +42,8 @@ val ImageFilePath = Path.of("image.ppm").nn
       maxMarchingSteps = 1000,
       tMin = 0,
       tMax = 100,
-      materialOverride = Some(MaterialOverride.Normal)
+      samplesPerPixel = 25
+//      materialOverride = Some(MaterialOverride.Normal)
     )
   )
 
@@ -67,6 +69,11 @@ val ImageFilePath = Path.of("image.ppm").nn
         .translate(Vec3(0, -1.5, 0))
     )
 //    .subtract(SceneMap.halfSpace.posX.translate(Vec3(0, 0, 0)))
+    .union(
+      SceneMap.halfSpace.negY
+        .translate(Vec3(0, -2, 0))
+        .withMaterial(clampedSinMaterial)
+    )
   val scene                                  = Scene(
     sceneMap = sceneMap,
     background = Background.gradient(
